@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Smart PDF Rename</h1>
+      <button id="openTab" class="ghost" title="Open in a full tab (best for batches)">⤢ Tab</button>
+    </header>
+
+    <label id="drop" class="drop" tabindex="0">
+      <input id="file" type="file" accept="application/pdf,.pdf" multiple hidden />
+      <span class="drop-title">Drop PDFs here</span>
+      <span class="drop-sub">or click to choose files</span>
+    </label>
+
+    <details id="settings">
+      <summary>Naming template &amp; options</summary>
+      <label class="opt">
+        <span>Template</span>
+        <input id="template" type="text" spellcheck="false" placeholder="{year}-{author}-{title}" />
+      </label>
+      <p class="tokens">Tokens: {title} {author} {year} {date} {id} {vendor} {type} {original}</p>
+      <div class="opt-row">
+        <label class="opt">
+          <span>Word separator</span>
+          <select id="separator">
+            <option value="-">dash -</option>
+            <option value="_">underscore _</option>
+            <option value=" ">space</option>
+          </select>
+        </label>
+        <label class="opt">
+          <span>Illegal char</span>
+          <input id="illegal" type="text" maxlength="1" value="-" />
+        </label>
+      </div>
+      <label class="opt inline">
+        <input id="lowercase" type="checkbox" />
+        <span>Lowercase everything</span>
+      </label>
+    </details>
+
+    <section id="list" class="list" hidden></section>
+
+    <div id="bulk" class="bulk" hidden>
+      <button id="applyAll" class="primary">Apply all &amp; save renamed copies</button>
+      <button id="clear" class="ghost">Clear</button>
+    </div>
+
+    <footer>
+      <span>100% local — your PDFs never leave your browser</span>
+    </footer>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

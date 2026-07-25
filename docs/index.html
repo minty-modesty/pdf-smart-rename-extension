@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PDF Smart Rename</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Names each PDF from what is inside it — title, author, year, arXiv ID, DOI, invoice number — in batches, entirely in your browser.">
+<style>
+  :root {
+    --bg: #fbfbfc; --panel: #ffffff; --ink: #191c23; --muted: #5c6270;
+    --faint: #8b909d; --line: #e7e8ec; --accent: #0c7b7b; --accent-ink: #0a6a6a;
+    --accent-wash: #e7f2f1; --radius: 10px; --maxw: 840px;
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: "SF Pro Text", -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+    --display: "SF Pro Display", -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1115; --panel:#161920; --ink:#e7e9ef; --muted:#9298a6;
+      --faint:#6a7080; --line:#23262f; --accent:#38c6bd; --accent-ink:#4fd6cd; --accent-wash:#12302e; }
+  }
+  :root[data-theme="light"] { --bg:#fbfbfc; --panel:#ffffff; --ink:#191c23; --muted:#5c6270;
+    --faint:#8b909d; --line:#e7e8ec; --accent:#0c7b7b; --accent-ink:#0a6a6a; --accent-wash:#e7f2f1; }
+  :root[data-theme="dark"] { --bg:#0f1115; --panel:#161920; --ink:#e7e9ef; --muted:#9298a6;
+    --faint:#6a7080; --line:#23262f; --accent:#38c6bd; --accent-ink:#4fd6cd; --accent-wash:#12302e; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 24px; }
+  a { color:var(--accent-ink); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  a:focus-visible { outline:2px solid var(--accent); outline-offset:3px; border-radius:3px; }
+  header { border-bottom:1px solid var(--line); }
+  .bar { display:flex; align-items:center; justify-content:space-between; min-height:60px; gap:16px; flex-wrap:wrap; }
+  .mark { display:flex; align-items:center; gap:10px; font-weight:650; letter-spacing:-0.01em; }
+  .mark svg { color:var(--accent); flex:none; }
+  .tag { font-family:var(--mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--faint); }
+  .hero { padding:64px 0 40px; }
+  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:var(--accent-ink); margin:0 0 18px; }
+  h1 { font-family:var(--display); font-weight:700; letter-spacing:-0.025em;
+    font-size:clamp(2.1rem,5.5vw,3.2rem); line-height:1.05; margin:0; max-width:20ch; text-wrap:balance; }
+  .lede { margin:22px 0 0; max-width:56ch; font-size:1.12rem; color:var(--muted); line-height:1.55; }
+  .privacy-pill { display:inline-flex; align-items:center; gap:8px; margin-top:26px;
+    font-family:var(--mono); font-size:12.5px; letter-spacing:0.03em; color:var(--accent-ink);
+    background:var(--accent-wash); border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    padding:7px 13px; border-radius:999px; }
+  .cta { display:flex; gap:12px; flex-wrap:wrap; margin-top:30px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:13px;
+    padding:11px 18px; border-radius:8px; border:1px solid var(--accent); color:var(--accent-ink); }
+  .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  @media (prefers-color-scheme: dark) { .btn.primary { color:#08201f; } }
+  .btn:hover { text-decoration:none; filter:brightness(1.06); }
+  section.blk { padding:20px 0 8px; }
+  .sec-head { display:flex; align-items:baseline; gap:14px; margin:0 0 22px; border-top:1px solid var(--line); }
+  .sec-head h2 { font-family:var(--mono); font-weight:600; font-size:12px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--faint); margin:20px 0 0; }
+  .sec-head .count { font-family:var(--mono); font-size:12px; color:var(--faint); margin-top:20px; }
+  p { color:var(--muted); }
+  p strong, li strong { color:var(--ink); font-weight:600; }
+  .body { max-width:64ch; }
+  h3 { font-family:var(--display); font-size:1.05rem; letter-spacing:-0.01em; margin:28px 0 6px; color:var(--ink); }
+  code { font-family:var(--mono); font-size:0.88em; background:var(--panel);
+    border:1px solid var(--line); border-radius:4px; padding:1px 5px; color:var(--ink); }
+  pre { font-family:var(--mono); font-size:12.5px; background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:16px 18px; overflow-x:auto; color:var(--ink); line-height:1.5; }
+  pre code { background:none; border:none; padding:0; }
+  .facts { margin:24px 0; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+  .facts dl { margin:0; }
+  .facts .row { display:grid; grid-template-columns:190px 1fr; }
+  .facts .row + .row { border-top:1px solid var(--line); }
+  .facts dt { font-family:var(--mono); font-size:11.5px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--faint); padding:14px 18px; background:color-mix(in srgb, var(--bg) 60%, var(--panel)); margin:0; }
+  .facts dd { margin:0; padding:14px 18px; color:var(--ink); font-size:0.95rem; }
+  .facts dd b { color:var(--accent-ink); font-weight:600; }
+  .facts dd code { font-size:0.85em; }
+  figure { margin:26px 0; }
+  figure img { max-width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:var(--radius); }
+  figcaption { font-family:var(--mono); font-size:11.5px; color:var(--faint); margin-top:8px; }
+  ul { color:var(--muted); padding-left:22px; }
+  li { margin:6px 0; }
+  footer { border-top:1px solid var(--line); padding:28px 0 48px; margin-top:44px; }
+  footer .row { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; justify-content:space-between; }
+  footer .meta, footer a { font-family:var(--mono); font-size:12px; }
+  footer .meta { color:var(--faint); }
+  @media (max-width:560px) {
+    .hero { padding:44px 0 32px; }
+    .facts .row { grid-template-columns:1fr; }
+    .facts dt { padding-bottom:4px; }
+    .facts dd { padding-top:4px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <div class="mark"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true"><path d="M11 1.6 20.4 11 11 20.4 1.6 11 11 1.6Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11 6.4 15.6 11 11 15.6 6.4 11 11 6.4Z" fill="currentColor"/></svg><span>PDF Smart Rename</span></div>
+    <span class="tag">MIT licensed · 100% local</span>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">PDF · organising</p>
+      <h1>PDF Smart Rename</h1>
+      <p class="lede">Names each PDF from what is inside it — title, author, year, arXiv ID, DOI, invoice number — in batches, entirely in your browser.</p>
+      <span class="privacy-pill">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><path d="M6.5 1 2 3v3c0 2.8 1.9 4.6 4.5 5.6C9.1 10.6 11 8.8 11 6V3L6.5 1Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/></svg>
+        No server · no telemetry · no account
+      </span>
+      <div class="cta"><a class="btn primary" href="https://chromewebstore.google.com/detail/aihfigofjhloklmkibkbjpflhohmdpik">Install from the Chrome Web Store</a><a class="btn" href="https://github.com/liuhao04/pdf-smart-rename-extension">Read the source</a></div>
+    </div>
+  </section>
+
+  <section class="blk wrap">
+    <div class="sec-head"><h2>The problem</h2></div>
+    <div class="body">
+      <p>Your downloads folder has <code>1706.03762v7.pdf</code>, <code>sdarticle.pdf</code>, <code>download (3).pdf</code>, and <code>ijsdoc_20250114_final_v2.pdf</code> in it. Every one of them has a real title printed on its first page. None of that title is in the filename, so finding a paper again means opening four PDFs.</p>
+      <h3>What happens when you install this one</h3>
+      <p>Drop a pile of PDFs into the extension and it reads each one, then proposes a name built from what is inside the file:</p>
+      <pre><code>1706.03762v7.pdf   -&gt;   2017-Attention-Is-All-You-Need.pdf
+sdarticle.pdf      -&gt;   2016-01-25-Sliced-Invoices-invoice-INV-3337.pdf</code></pre>
+      <p>Every suggestion is editable before anything is written. Save one, or apply the whole batch.</p>
+      <p>Where the name comes from, in order of preference: the PDF’s own Title metadata (with wrappers like <code>Microsoft Word - x.docx</code> stripped off and junk titles rejected), then the largest-type heading on page one (lines are clustered by vertical position, so a title split across two lines comes back whole), then a structured identifier, then a date. It recognises arXiv IDs in both the new and old style, DOIs, ISBNs, invoice numbers, and dates. The template is yours to change: <code>{title} {author} {year} {date} {id} {vendor} {type} {original}</code>.</p>
+      <h3>What it does not do</h3>
+      <p><strong>Scanned, image-only PDFs have no text layer</strong>, so there is nothing to extract and the name falls back to a date. And <strong>Chrome does not let an extension rename an arbitrary file on your disk</strong>: “apply” saves a copy under the new name into your downloads folder and leaves the original where it was.</p>
+    </div>
+  <figure><img src="screenshots/shot-1.jpg" alt="PDF Smart Rename screenshot"></figure>
+  </section>
+
+  <section class="blk wrap">
+    <div class="sec-head"><h2>Permissions</h2><span class="count">/ and why each one is needed</span></div>
+    <div class="body">
+      <div class="facts">
+        <dl>
+          <div class="row"><dt>downloads</dt><dd>The only way an extension can write a renamed file. Chrome does not let extensions rename arbitrary files on disk, so "apply" saves a copy under the new name into your downloads folder and leaves the original alone.</dd></div>
+          <div class="row"><dt>storage</dt><dd>Stores your filename template and separator choices. Local to the browser.</dd></div>
+        </dl>
+      </div>
+      <p>Nothing here is optional-sounding boilerplate: remove any one of these and the extension stops
+      working. There is no permission requested "for future features".</p>
+    </div>
+  </section>
+
+  <section class="blk wrap">
+    <div class="sec-head"><h2>Install from source</h2></div>
+    <div class="body">
+      <pre><code>git clone https://github.com/liuhao04/pdf-smart-rename-extension.git</code></pre>
+      <p>Then open <code>chrome://extensions</code>, switch on Developer mode, choose <b>Load unpacked</b>,
+      and pick the <code>extension/</code> folder. That is the same code the Web Store build is made from.</p>
+      <p>Issues and pull requests are welcome. This is maintained in spare time — answers come when they come,
+      and there is no support commitment attached.</p>
+    </div>
+  </section>
+</main>
+<footer>
+  <div class="wrap row">
+    <span class="meta">MIT licensed · © 2026 Hao Liu</span>
+    <span><a href="https://github.com/liuhao04/pdf-smart-rename-extension">Source on GitHub</a> · <a href="privacy.html">Privacy policy</a> · <a href="mailto:liuqwer@gmail.com">liuqwer@gmail.com</a></span>
+  </div>
+</footer>
+</body>
+</html>
