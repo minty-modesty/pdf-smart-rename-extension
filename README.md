@@ -60,7 +60,7 @@ Every permission, and why it is there. There are two, and no host permissions:
 - **`downloads`**: the only way an extension can write a renamed file at all. See the limit above.
 - **`storage`**: your filename template and separator choices, kept locally.
 
-Full privacy policy: <https://liuhao04.github.io/pdf-smart-rename-extension/privacy.html>
+Full privacy policy: <https://minty-modesty.github.io/pdf-smart-rename-extension/privacy.html>
 
 ## Install
 
@@ -69,7 +69,7 @@ Chrome Web Store: <https://chromewebstore.google.com/detail/aihfigofjhloklmkibkb
 From source:
 
 ```
-git clone https://github.com/liuhao04/pdf-smart-rename-extension.git
+git clone https://github.com/minty-modesty/pdf-smart-rename-extension.git
 ```
 
 Open `chrome://extensions`, switch on Developer mode, choose **Load unpacked**, and select the
